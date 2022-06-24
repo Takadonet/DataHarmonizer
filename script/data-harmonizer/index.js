@@ -22,7 +22,7 @@
  *
  */
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const VERSION_TEXT = 'DataHarmonizer provenance: v' + VERSION;
 
 let DataHarmonizer = {
@@ -939,32 +939,37 @@ let DataHarmonizer = {
 	  const fields = this.getFields();
 	  this.hot.updateSettings({
 		afterBeginEditing: function(row, col) {
-		  if (fields[col].flatVocabulary && fields[col].multivalued === true) {
+		  if (fields[col].multivalued === true) {
+		  	const self = this;
 			const value = this.getDataAtCell(row, col);
-			let selections = value && value.split(';') || [];
-			selections = selections.map(x => x.trim());
-			selections2 = selections.filter(function (el) {return el != ''});
-			// Cleanup of empty values that can occur with leading/trailing or double ";"
-			if (selections.length != selections2.length)
-			  this.setDataAtCell(row, col, selections2.join('; '), 'thisChange');
-			const self = this;
-			let content = '';
-			if (fields[col].flatVocabulary)
-			  fields[col].flatVocabulary.forEach(function(field, i) {
-				const field_trim = field.trim();
-				let selected = selections.includes(field_trim) ? 'selected="selected"' : '';
-				let indentation = field.search(/\S/) * 8; // pixels
-				content += `<option value="${field_trim}" ${selected}' style="padding-left:${indentation}px">${field}</option>`;
-			  })
+			let selections = [];
+			if (value) {
+				// Cleanup of spaces, and empty values that can occur with leading/trailing or double ";"
+				selections = value.split(';').map(x => x.trim());
+				selections2 = selections.filter(function (el) {return el != ''}).join('; ');
+				if (value.length != selections2.length)
+				  this.setDataAtCell(row, col, selections2, 'thisChange');
+			}
 
-			$('#field-description-text').html(`${fields[col].title}<select multiple class="multiselect" rows="15">${content}</select>`);
-			$('#field-description-modal').modal('show');
-			$('#field-description-text .multiselect')
-			  .chosen() // must be rendered when html is visible
-			  .change(function () {
-				let newValCsv = $('#field-description-text .multiselect').val().join('; ')
-				self.setDataAtCell(row, col, newValCsv, 'thisChange');
-			  }); 
+			if (fields[col].flatVocabulary) {
+				let content = '';
+				fields[col].flatVocabulary.forEach(function(field, i) {
+					const field_trim = field.trim();
+					let selected = selections.includes(field_trim) ? 'selected="selected"' : '';
+					let indentation = field.search(/\S/) * 8; // pixels
+					content += `<option value="${field_trim}" ${selected}' style="padding-left:${indentation}px">${field}</option>`;
+				})
+
+				$('#field-description-text').html(`${fields[col].title}<select multiple class="multiselect" rows="15">${content}</select>`);
+				$('#field-description-modal').modal('show');
+				$('#field-description-text .multiselect')
+				  .chosen() // must be rendered when html is visible
+				  .change(function () {
+					let newValCsv = $('#field-description-text .multiselect').val().join('; ')
+					self.setDataAtCell(row, col, newValCsv, 'thisChange');
+				  }); 
+
+			 }
 		  }
 		},
 	  });
